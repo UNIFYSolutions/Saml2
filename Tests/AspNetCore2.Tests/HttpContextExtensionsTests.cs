@@ -21,11 +21,11 @@ namespace Sustainsys.Saml2.AspNetCore2.Tests
     public class HttpContextExtensionsTests
     {
         [TestMethod]
-        public void HttpContextExtensions_ToHttpRequestData()
+        public async void HttpContextExtensions_ToHttpRequestData()
         {
             var context = TestHelpers.CreateHttpContext();
 
-            var actual = context.ToHttpRequestData(Substitute.For<ICookieManager>(), StubDataProtector.Unprotect);
+            var actual = await context.ToHttpRequestData(Substitute.For<ICookieManager>(), StubDataProtector.Unprotect);
 
             actual.Url.Should().Be(new Uri("https://sp.example.com/somePath?param=value"));
             actual.Form.Count.Should().Be(2);
@@ -36,11 +36,11 @@ namespace Sustainsys.Saml2.AspNetCore2.Tests
         }
 
         [TestMethod]
-        public void HttpContextExtensions_ToHttpRequestData_Get()
+        public async void HttpContextExtensions_ToHttpRequestData_Get()
         {
             var context = TestHelpers.CreateHttpGet();
 
-            var actual = context.ToHttpRequestData(Substitute.For<ICookieManager>(), StubDataProtector.Unprotect);
+            var actual = await context.ToHttpRequestData(Substitute.For<ICookieManager>(), StubDataProtector.Unprotect);
 
             actual.Url.Should().Be(new Uri("https://sp.example.com/somePath?param=value"));
             actual.Form.Count.Should().Be(0);
@@ -49,32 +49,32 @@ namespace Sustainsys.Saml2.AspNetCore2.Tests
         }
 
         [TestMethod]
-        public void HttpContextExtensions_ToHttpRequestData_InvalidPost()
+        public async void HttpContextExtensions_ToHttpRequestData_InvalidPost()
         {
             var context = TestHelpers.CreateHttpContext();
 
             context.Request.HasFormContentType.Returns(false);
             context.Request.Form.Returns(i => { throw new InvalidOperationException(); });
 
-            context.ToHttpRequestData(Substitute.For<ICookieManager>(), StubDataProtector.Unprotect);
+            await context.ToHttpRequestData(Substitute.For<ICookieManager>(), StubDataProtector.Unprotect);
 
             // No exception = pass
         }
 
         [TestMethod]
-        public void HttpContextExtensions_ToHttpRequestData_ApplicationNotInRoot()
+        public async void HttpContextExtensions_ToHttpRequestData_ApplicationNotInRoot()
         {
             var context = TestHelpers.CreateHttpContext();
 
             context.Request.PathBase = "/ApplicationPath";
 
-            var actual = context.ToHttpRequestData(Substitute.For<ICookieManager>(), null);
+            var actual = await context.ToHttpRequestData(Substitute.For<ICookieManager>(), null);
 
             actual.ApplicationUrl.Should().Be(new Uri("https://sp.example.com/ApplicationPath"));
         }
 
         [TestMethod]
-        public void HttpContextExtensions_ToHttpRequestData_ReadsRelayStateCookie()
+        public async void HttpContextExtensions_ToHttpRequestData_ReadsRelayStateCookie()
         {
             var context = TestHelpers.CreateHttpContext();
             context.Request.QueryString = new QueryString("?RelayState=SomeState");
@@ -89,7 +89,7 @@ namespace Sustainsys.Saml2.AspNetCore2.Tests
             var cookieManager = Substitute.For<ICookieManager>();
             cookieManager.GetRequestCookie(context, cookieName).Returns(cookieData);
 
-            var actual = context.ToHttpRequestData(cookieManager, StubDataProtector.Unprotect);
+            var actual = await context.ToHttpRequestData(cookieManager, StubDataProtector.Unprotect);
 
             actual.StoredRequestState.Should().BeEquivalentTo(storedRequestState);
         }
@@ -105,7 +105,7 @@ namespace Sustainsys.Saml2.AspNetCore2.Tests
         }
 
         [TestMethod]
-        public void HttpContextExtensions_ToHttpRequestData_ExtractsUser()
+        public async void HttpContextExtensions_ToHttpRequestData_ExtractsUser()
         {
             var context = TestHelpers.CreateHttpContext();
             context.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
@@ -113,7 +113,7 @@ namespace Sustainsys.Saml2.AspNetCore2.Tests
                 new Claim(ClaimTypes.NameIdentifier, "NameID")
             }));
 
-            var actual = context.ToHttpRequestData(Substitute.For<ICookieManager>(), null);
+            var actual = await context.ToHttpRequestData(Substitute.For<ICookieManager>(), null);
 
             actual.User.Should().BeSameAs(context.User);
         }
