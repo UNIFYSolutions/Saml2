@@ -10,6 +10,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using System.Diagnostics.CodeAnalysis;
 using Sustainsys.Saml2.Metadata;
+using System.Net.Http;
 
 namespace Sustainsys.Saml2.AspNetCore2
 {
@@ -25,6 +26,7 @@ namespace Sustainsys.Saml2.AspNetCore2
         HttpContext context;
         private readonly IDataProtector dataProtector;
         private readonly IOptionsFactory<Saml2Options> optionsFactory;
+        private readonly IHttpClientFactory _HttpClientFactory;
         bool emitSameSiteNone;
 
         /// <summary>
@@ -33,10 +35,12 @@ namespace Sustainsys.Saml2.AspNetCore2
         /// <param name="optionsCache">Options</param>
         /// <param name="dataProtectorProvider">Data Protector Provider</param>
         /// <param name="optionsFactory">Factory for options</param>
+        /// <param name="httpClientFactory">Factory to create HttpClients.</param>
         public Saml2Handler(
             IOptionsMonitorCache<Saml2Options> optionsCache,
             IDataProtectionProvider dataProtectorProvider,
-            IOptionsFactory<Saml2Options> optionsFactory)
+            IOptionsFactory<Saml2Options> optionsFactory,
+            IHttpClientFactory httpClientFactory)
         {
             if (dataProtectorProvider == null)
             {
@@ -47,6 +51,8 @@ namespace Sustainsys.Saml2.AspNetCore2
 
             this.optionsFactory = optionsFactory;
             this.optionsCache = optionsCache;
+
+            _HttpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         }
 
         /// <InheritDoc />
@@ -57,6 +63,7 @@ namespace Sustainsys.Saml2.AspNetCore2
             this.context = context ?? throw new ArgumentNullException(nameof(context));
 
             options = optionsCache.GetOrAdd(scheme.Name, () => optionsFactory.Create(scheme.Name));
+            options.HttpClientFactory = _HttpClientFactory;
 
             emitSameSiteNone = options.Notifications.EmitSameSiteNone(context.Request.GetUserAgent());
 
@@ -88,7 +95,7 @@ namespace Sustainsys.Saml2.AspNetCore2
             var redirectUri = properties.RedirectUri ?? CurrentUri;
             properties.RedirectUri = null;
 
-            var requestData = context.ToHttpRequestData(options.CookieManager, null);
+            HttpRequestData requestData = await context.ToHttpRequestData(options.CookieManager, null);
 
             EntityId entityId = null;
 
@@ -122,8 +129,8 @@ namespace Sustainsys.Saml2.AspNetCore2
                 var commandName = context.Request.Path.Value.Substring(
                     options.SPOptions.ModulePath.Length).TrimStart('/');
 
-                var commandResult = CommandFactory.GetCommand(commandName).Run(
-                    context.ToHttpRequestData(options.CookieManager, dataProtector.Unprotect), options);
+                HttpRequestData requestData = await context.ToHttpRequestData(options.CookieManager, dataProtector.Unprotect);
+                CommandResult commandResult = await CommandFactory.GetCommand(commandName).Run(requestData, options);
 
                 await commandResult.Apply(
                     context, dataProtector, options.CookieManager, options.SignInScheme, options.SignOutScheme, emitSameSiteNone);
@@ -146,8 +153,10 @@ namespace Sustainsys.Saml2.AspNetCore2
                 throw new ArgumentNullException(nameof(properties));
             }
 
+            HttpRequestData requestData = await context.ToHttpRequestData(options.CookieManager, dataProtector.Unprotect);
+
             await LogoutCommand.InitiateLogout(
-                context.ToHttpRequestData(options.CookieManager, dataProtector.Unprotect),
+                requestData,
                 new Uri(properties.RedirectUri, UriKind.RelativeOrAbsolute),
                 options,
                 // In the Asp.Net Core2 model, it's the caller's responsibility to terminate the
