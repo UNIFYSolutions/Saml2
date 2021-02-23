@@ -100,8 +100,8 @@ namespace Sustainsys.Saml2.AspNetCore2.Tests
             var context = TestHelpers.CreateHttpContext();
             context.Request.QueryString = new QueryString("?RelayState=SomeState");
 
-            context.Invoking(c => c.ToHttpRequestData(Substitute.For<ICookieManager>(), null ))
-                .Should().NotThrow();
+            Func<Task> a = () => context.ToHttpRequestData(Substitute.For<ICookieManager>(), null);
+            a.Should().NotThrow();
         }
 
         [TestMethod]
