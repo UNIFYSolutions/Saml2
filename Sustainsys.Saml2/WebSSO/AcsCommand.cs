@@ -56,7 +56,7 @@ namespace Sustainsys.Saml2.WebSso
                     var idpContext = GetIdpContext(unbindResult.Data, request, options);
 
                     var result = ProcessResponse(options, samlResponse, request.StoredRequestState, idpContext, unbindResult.RelayState);
-
+                    result.Cacheability = Cacheability.Private;
                     if (request.StoredRequestState != null)
                     {
                         var urls = new Saml2Urls(request, options);
