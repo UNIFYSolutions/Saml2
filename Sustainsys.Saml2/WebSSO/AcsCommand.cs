@@ -173,7 +173,7 @@ namespace Sustainsys.Saml2.WebSso
                 + samlResponse.Id.Value + " and authenticated " 
                 + principal.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
-            return new CommandResult()
+            var commandResult = new CommandResult()
             {
                 HttpStatusCode = HttpStatusCode.SeeOther,
                 Location = GetLocation(storedRequestState, identityProvider, relayState, options),
@@ -181,6 +181,10 @@ namespace Sustainsys.Saml2.WebSso
                 RelayData = storedRequestState?.RelayData,
                 SessionNotOnOrAfter = samlResponse.SessionNotOnOrAfter
             };
+
+            //commandResult.Headers["Cache-Control"] = "no-store";
+
+            return commandResult;
         }
 
         
