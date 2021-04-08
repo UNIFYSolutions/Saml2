@@ -102,7 +102,7 @@ namespace Sustainsys.Saml2.WebSso
         public CommandResult()
         {
             HttpStatusCode = HttpStatusCode.OK;
-            Cacheability = Cacheability.NoCache;
+            Cacheability = Cacheability.Private;
         }
 
         /// <summary>

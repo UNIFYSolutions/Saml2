@@ -11,6 +11,6 @@ using System.Reflection;
 //      Patch Number
 //
 
-[assembly: AssemblyVersion("2.8.0-unify.3")]
-[assembly: AssemblyFileVersion("2.8.0-unify.3")]
-[assembly: AssemblyInformationalVersion("2.8.0-unify.3")]
+[assembly: AssemblyVersion("2.8.0-unify.4")]
+[assembly: AssemblyFileVersion("2.8.0-unify.4")]
+[assembly: AssemblyInformationalVersion("2.8.0-unify.4")]
